@@ -1,0 +1,80 @@
+name: Update AUR Package
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to update to'
+        required: true
+        type: string
+
+jobs:
+  update-aur:
+    runs-on: ubuntu-latest
+    if: github.repository == 'tn3w/plymouth-theme-arch-ascii'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up SSH for AUR
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.AUR_SSH_PRIVATE_KEY }}" > ~/.ssh/aur
+        chmod 600 ~/.ssh/aur
+        echo "Host aur.archlinux.org" >> ~/.ssh/config
+        echo "  HostName aur.archlinux.org" >> ~/.ssh/config
+        echo "  User aur" >> ~/.ssh/config
+        echo "  IdentityFile ~/.ssh/aur" >> ~/.ssh/config
+        echo "  StrictHostKeyChecking no" >> ~/.ssh/config
+        
+    - name: Get version
+      id: version
+      run: |
+        if [ "${{ github.event_name }}" = "release" ]; then
+          VERSION=${GITHUB_REF#refs/tags/v}
+        else
+          VERSION="${{ github.event.inputs.version }}"
+        fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        
+    - name: Calculate SHA256
+      id: sha256
+      run: |
+        URL="https://github.com/tn3w/plymouth-theme-arch-ascii/archive/v${{ steps.version.outputs.version }}.tar.gz"
+        SHA256=$(curl -sL "$URL" | sha256sum | cut -d' ' -f1)
+        echo "sha256=$SHA256" >> $GITHUB_OUTPUT
+        
+    - name: Clone AUR repository
+      run: |
+        git clone ssh://aur@aur.archlinux.org/plymouth-theme-arch-ascii.git aur-repo
+        
+    - name: Update AUR package files
+      run: |
+        cd aur-repo
+        
+        # Copy updated PKGBUILD and .SRCINFO
+        cp ../PKGBUILD .
+        cp ../.SRCINFO .
+        
+        # Update version and checksum in PKGBUILD
+        sed -i "s/^pkgver=.*/pkgver=${{ steps.version.outputs.version }}/" PKGBUILD
+        sed -i "s/^pkgrel=.*/pkgrel=1/" PKGBUILD
+        sed -i "s/sha256sums=('.*')/sha256sums=('${{ steps.sha256.outputs.sha256 }}')/" PKGBUILD
+        
+        # Update .SRCINFO
+        sed -i "s/pkgver = .*/pkgver = ${{ steps.version.outputs.version }}/" .SRCINFO
+        sed -i "s/pkgrel = .*/pkgrel = 1/" .SRCINFO
+        sed -i "s/sha256sums = .*/sha256sums = ${{ steps.sha256.outputs.sha256 }}/" .SRCINFO
+        sed -i "s/source = plymouth-theme-arch-ascii-.*.tar.gz/source = plymouth-theme-arch-ascii-${{ steps.version.outputs.version }}.tar.gz::https:\/\/github.com\/tn3w\/plymouth-theme-arch-ascii\/archive\/v${{ steps.version.outputs.version }}.tar.gz/" .SRCINFO
+        
+    - name: Commit and push to AUR
+      run: |
+        cd aur-repo
+        git config user.name "tn3w"
+        git config user.email "tn3w@protonmail.com"
+        git add PKGBUILD .SRCINFO
+        git commit -m "Update to version ${{ steps.version.outputs.version }}"
+        git push origin master

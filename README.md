@@ -5,10 +5,19 @@
 <h2 align="center">Plymouth Theme: Arch Ascii Art</h2>
 <p align="center">Arch Ascii Art is a <strong>Plymouth theme</strong> featuring a centered <strong>rainbow-colored Arch Linux ASCII art</strong> logo with password input functionality.</p>
 
+<p align="center">
+  <strong>Keywords:</strong> arch-linux, plymouth, plymouth-themes, plymouth-theme, boot-splash, luks, encryption, ascii-art, rainbow, arch-logo
+</p>
+
+<p align="center">
+  <strong>Author:</strong> tn3w &lt;tn3w@protonmail.com&gt;<br>
+  <strong>Repository:</strong> <a href="https://github.com/tn3w/plymouth-theme-arch-ascii">https://github.com/tn3w/plymouth-theme-arch-ascii</a><br>
+  <strong>AUR Package:</strong> <a href="https://aur.archlinux.org/packages/plymouth-theme-arch-ascii">plymouth-theme-arch-ascii</a>
+</p>
+
 Quick Install:
 ```bash
-sudo git clone https://github.com/tn3w/plymouth-theme-arch-ascii.git
-sudo cp -r plymouth-theme-arch-ascii /usr/share/plymouth/themes/arch-ascii-art
+yay -S plymouth-theme-arch-ascii
 sudo plymouth-set-default-theme arch-ascii-art
 sudo mkinitcpio -P
 ```
@@ -39,8 +48,25 @@ sudo mkinitcpio -P
    sudo mkinitcpio -P
    ```
 
+**A. Use AUR helpers**
+   1. Install with yay:
+   ```bash
+   yay -S plymouth-theme-arch-ascii
+   ```
+   2. Or install with paru:
+   ```bash
+   paru -S plymouth-theme-arch-ascii
+   ```
+   3. Set the theme as default:
+   ```bash
+   sudo plymouth-set-default-theme arch-ascii-art
+   ```
+   4. Update initramfs:
+   ```bash
+   sudo mkinitcpio -P
+   ```
 
-**A. Use git**
+**B. Use git**
    1. Clone the repository to your machine:
       ```bash
       sudo git clone https://github.com/tn3w/plymouth-theme-arch-ascii.git
@@ -60,29 +86,15 @@ sudo mkinitcpio -P
       ```bash
       sudo mkinitcpio -P
       ```
-**B. Use AUR helpers (COMING SOON)**
-   <!--1. Install with yay:
-   ```bash
-   yay -S plymouth-theme-arch-ascii
-   ```
-   2. Or install with paru:
-   ```bash
-   paru -S plymouth-theme-arch-ascii
-   ```
-   3. Set the theme as default:
-   ```bash
-   sudo plymouth-set-default-theme arch-ascii
-   ```
-   4. Update initramfs:
-   ```bash
-   sudo mkinitcpio -P
-   ```-->
 
 
 ## Files
 
 - `arch-ascii-art.script` - Main theme script with rainbow colors and password functionality
 - `arch-ascii-art.plymouth` - Theme configuration file
+- `PKGBUILD` - Arch Linux package build script for AUR
+- `.SRCINFO` - AUR package metadata file
+- `LICENSE` - MIT License file
 - `README.md` - This documentation
 
 ## Color Scheme

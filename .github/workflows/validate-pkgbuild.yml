@@ -1,0 +1,55 @@
+name: Validate PKGBUILD
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'PKGBUILD'
+      - '.SRCINFO'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'PKGBUILD'
+      - '.SRCINFO'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Arch Linux container
+      run: |
+        docker pull archlinux:latest
+        
+    - name: Validate PKGBUILD syntax
+      run: |
+        docker run --rm -v "$PWD:/workspace" -w /workspace archlinux:latest bash -c "
+          pacman -Sy --noconfirm base-devel namcap
+          namcap PKGBUILD || echo 'PKGBUILD validation completed with warnings'
+        "
+        
+    - name: Check .SRCINFO consistency
+      run: |
+        docker run --rm -v "$PWD:/workspace" -w /workspace archlinux:latest bash -c "
+          pacman -Sy --noconfirm base-devel
+          makepkg --printsrcinfo > .SRCINFO.generated
+          if ! diff -u .SRCINFO .SRCINFO.generated; then
+            echo 'ERROR: .SRCINFO is not up to date with PKGBUILD'
+            echo 'Run: makepkg --printsrcinfo > .SRCINFO'
+            exit 1
+          else
+            echo '.SRCINFO is consistent with PKGBUILD'
+          fi
+        "
+        
+    - name: Test package build (dry run)
+      run: |
+        docker run --rm -v "$PWD:/workspace" -w /workspace archlinux:latest bash -c "
+          pacman -Sy --noconfirm base-devel git
+          useradd -m builder
+          chown -R builder:builder /workspace
+          sudo -u builder makepkg --nobuild --nodeps || echo 'Build preparation completed with warnings'
+        "

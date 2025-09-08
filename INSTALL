@@ -1,0 +1,58 @@
+Installation Instructions for Plymouth Theme: Arch ASCII Art
+===========================================================
+
+## AUR Installation (Recommended)
+
+1. Install using an AUR helper:
+   ```bash
+   yay -S plymouth-theme-arch-ascii
+   # or
+   paru -S plymouth-theme-arch-ascii
+   ```
+
+2. Set the theme as default:
+   ```bash
+   sudo plymouth-set-default-theme arch-ascii-art
+   ```
+
+3. Update initramfs:
+   ```bash
+   sudo mkinitcpio -P
+   ```
+
+## Manual Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/tn3w/plymouth-theme-arch-ascii.git
+   ```
+
+2. Copy theme files:
+   ```bash
+   sudo cp -r plymouth-theme-arch-ascii /usr/share/plymouth/themes/arch-ascii-art
+   ```
+
+3. Set as default theme:
+   ```bash
+   sudo plymouth-set-default-theme arch-ascii-art
+   ```
+
+4. Update initramfs:
+   ```bash
+   sudo mkinitcpio -P
+   ```
+
+## Prerequisites
+
+- Plymouth must be installed: `sudo pacman -S plymouth`
+- For LUKS encryption support, ensure plymouth is before encrypt in mkinitcpio.conf HOOKS
+
+## Testing
+
+Test without rebooting:
+```bash
+sudo plymouthd --debug --debug-file=/tmp/plymouth-debug.log
+sudo plymouth --show-splash
+sudo plymouth --ask-for-password
+sudo plymouth --quit
+```

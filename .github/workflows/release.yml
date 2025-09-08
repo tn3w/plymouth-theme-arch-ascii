@@ -1,0 +1,106 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Extract version from tag
+      id: version
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/v}
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        
+    - name: Update PKGBUILD version
+      run: |
+        sed -i "s/^pkgver=.*/pkgver=${{ steps.version.outputs.version }}/" PKGBUILD
+        sed -i "s/^pkgrel=.*/pkgrel=1/" PKGBUILD
+        
+    - name: Generate .SRCINFO
+      run: |
+        # Update .SRCINFO with new version
+        sed -i "s/pkgver = .*/pkgver = ${{ steps.version.outputs.version }}/" .SRCINFO
+        sed -i "s/pkgrel = .*/pkgrel = 1/" .SRCINFO
+        sed -i "s/source = plymouth-theme-arch-ascii-.*.tar.gz/source = plymouth-theme-arch-ascii-${{ steps.version.outputs.version }}.tar.gz::https:\/\/github.com\/tn3w\/plymouth-theme-arch-ascii\/archive\/v${{ steps.version.outputs.version }}.tar.gz/" .SRCINFO
+        
+    - name: Create Release Archive
+      run: |
+        mkdir -p release-files
+        cp arch-ascii-art.plymouth arch-ascii-art.script LICENSE README.md release-files/
+        tar -czf plymouth-theme-arch-ascii-${{ steps.version.outputs.version }}.tar.gz -C release-files .
+        
+    - name: Generate Release Notes
+      id: release_notes
+      run: |
+        cat > release_notes.md << EOF
+        # Plymouth Theme: Arch ASCII Art v${{ steps.version.outputs.version }}
+        
+        ## Installation
+        
+        ### AUR Installation (Recommended)
+        \`\`\`bash
+        yay -S plymouth-theme-arch-ascii
+        # or
+        paru -S plymouth-theme-arch-ascii
+        \`\`\`
+        
+        ### Manual Installation
+        1. Download and extract the release archive
+        2. Copy to Plymouth themes directory:
+           \`\`\`bash
+           sudo cp -r plymouth-theme-arch-ascii-${{ steps.version.outputs.version }}/* /usr/share/plymouth/themes/arch-ascii-art/
+           \`\`\`
+        3. Set as default theme:
+           \`\`\`bash
+           sudo plymouth-set-default-theme arch-ascii-art
+           sudo mkinitcpio -P
+           \`\`\`
+        
+        ## Files Included
+        - \`arch-ascii-art.script\` - Main theme script
+        - \`arch-ascii-art.plymouth\` - Theme configuration
+        - \`LICENSE\` - MIT License
+        - \`README.md\` - Documentation
+        - \`PKGBUILD\` - AUR package build script
+        - \`.SRCINFO\` - AUR metadata
+        
+        ## Features
+        - Rainbow-colored Arch Linux ASCII art
+        - Centered layout design
+        - Password input support for LUKS encryption
+        - Compatible with all Plymouth functionality
+        EOF
+        
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.version.outputs.tag }}
+        name: Plymouth Theme Arch ASCII Art ${{ steps.version.outputs.version }}
+        body_path: release_notes.md
+        files: |
+          plymouth-theme-arch-ascii-${{ steps.version.outputs.version }}.tar.gz
+          PKGBUILD
+          .SRCINFO
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Commit updated package files
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add PKGBUILD .SRCINFO
+        git diff --staged --quiet || git commit -m "Update package version to ${{ steps.version.outputs.version }}"
+        git push origin HEAD:main || echo "No changes to push"
