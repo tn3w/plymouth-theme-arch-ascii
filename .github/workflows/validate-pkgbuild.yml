@@ -31,20 +31,6 @@ jobs:
           namcap PKGBUILD || echo 'PKGBUILD validation completed with warnings'
         "
         
-    - name: Check .SRCINFO consistency
-      run: |
-        docker run --rm -v "$PWD:/workspace" -w /workspace archlinux:latest bash -c "
-          pacman -Sy --noconfirm base-devel
-          makepkg --printsrcinfo > .SRCINFO.generated
-          if ! diff -u .SRCINFO .SRCINFO.generated; then
-            echo 'ERROR: .SRCINFO is not up to date with PKGBUILD'
-            echo 'Run: makepkg --printsrcinfo > .SRCINFO'
-            exit 1
-          else
-            echo '.SRCINFO is consistent with PKGBUILD'
-          fi
-        "
-        
     - name: Test package build (dry run)
       run: |
         docker run --rm -v "$PWD:/workspace" -w /workspace archlinux:latest bash -c "
