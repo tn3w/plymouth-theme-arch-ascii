@@ -55,7 +55,6 @@ sudo mkinitcpio -P
    ```bash
    sudo mkinitcpio -P
    ```
-
 **B. Use git**
    1. Clone the repository to your machine:
       ```bash
