@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=Arch ASCII Art
+Description=A theme that features Arch ASCII art with encryption password input
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/arch-ascii-art
+ScriptFile=/usr/share/plymouth/themes/arch-ascii-art/arch-ascii-art.script

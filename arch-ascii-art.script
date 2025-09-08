@@ -1,0 +1,341 @@
+# Screen dimensions
+screen_width = Window.GetWidth();
+screen_height = Window.GetHeight();
+
+# Color definitions for rainbow effect
+colors = [];
+colors[0].red = 1.0; colors[0].green = 0.0; colors[0].blue = 0.0;     # Red
+colors[1].red = 1.0; colors[1].green = 0.5; colors[1].blue = 0.0;     # Orange
+colors[2].red = 1.0; colors[2].green = 1.0; colors[2].blue = 0.0;     # Yellow
+colors[3].red = 0.0; colors[3].green = 1.0; colors[3].blue = 0.0;     # Green
+colors[4].red = 0.0; colors[4].green = 0.0; colors[4].blue = 1.0;     # Blue
+colors[5].red = 0.5; colors[5].green = 0.0; colors[5].blue = 1.0;     # Purple
+
+# ASCII art lines with their corresponding color indices
+ascii_lines = [];
+ascii_lines[0] = "                   -`                    ";  # Red
+ascii_lines[1] = "                  .o+`                   ";  # Red
+ascii_lines[2] = "                 `ooo/                   ";  # Red
+ascii_lines[3] = "                `+oooo:                  ";  # Orange
+ascii_lines[4] = "               `+oooooo:                 ";  # Orange
+ascii_lines[5] = "               -+oooooo+:                ";  # Orange
+ascii_lines[6] = "             `/:-:++oooo+:               ";  # Yellow
+ascii_lines[7] = "            `/++++/+++++++:              ";  # Yellow
+ascii_lines[8] = "           `/++++++++++++++:             ";  # Yellow
+ascii_lines[9] = "          `/+++ooooooooooooo/`           ";  # Green
+ascii_lines[10] = "         ./ooosssso++osssssso+`          "; # Green
+ascii_lines[11] = "        .oossssso-````/ossssss+`         "; # Green
+ascii_lines[12] = "       -osssssso.      :ssssssso.        "; # Green
+ascii_lines[13] = "      :osssssss/        osssso+++.       "; # Blue
+ascii_lines[14] = "     /ossssssss/        +ssssooo/-       "; # Blue
+ascii_lines[15] = "   `/ossssso+/:-        -:/+osssso+-     "; # Blue
+ascii_lines[16] = "  `+sso+:-`                 `.-/+oso:    "; # Purple
+ascii_lines[17] = " `++:.                           `-/+/   "; # Purple
+ascii_lines[18] = " .`                                 `/   "; # Purple
+
+# Color mapping for each line
+line_colors = [];
+line_colors[0] = 0; line_colors[1] = 0; line_colors[2] = 0;     # Red
+line_colors[3] = 1; line_colors[4] = 1; line_colors[5] = 1;     # Orange
+line_colors[6] = 2; line_colors[7] = 2; line_colors[8] = 2;     # Yellow
+line_colors[9] = 3; line_colors[10] = 3; line_colors[11] = 3; line_colors[12] = 3; # Green
+line_colors[13] = 4; line_colors[14] = 4; line_colors[15] = 4;  # Blue
+line_colors[16] = 5; line_colors[17] = 5; line_colors[18] = 5;  # Purple
+
+# ASCII art sprites
+ascii_sprites = [];
+
+# Password dialog variables
+password_dialogue = NULL;
+password_field = NULL;
+password_bullets = [];
+password_prompt = NULL;
+bullet_image = NULL;
+loading_message = NULL;
+loading_dots = [];
+encrypted_device = NULL;
+password_error_message = NULL;
+
+# Status variables
+global.status = "normal";
+password_entered = 0;
+loading_dots_count = 0;
+loading_animation_time = 0;
+shutdown_message = NULL;
+shutdown_step = NULL;
+
+# Initialize ASCII art display
+fun init_ascii_art() {
+    local.ascii_height = 19;  # Number of lines in ASCII art
+    local.line_height = 16;   # Height per line
+    local.total_height = ascii_height * line_height;
+    
+    # Calculate starting Y position to center vertically
+    local.start_y = (screen_height - total_height) / 2 - 50;
+    
+    for (i = 0; i < ascii_height; i++) {
+        local.color_index = line_colors[i];
+        local.color = colors[color_index];
+        
+        # Create text image with rainbow color using monospace font
+        local.image = Image.Text(ascii_lines[i], color.red, color.green, color.blue, 1, "monospace");
+        ascii_sprites[i] = Sprite(local.image);
+        
+        # Center horizontally
+        local.x = (screen_width - local.image.GetWidth()) / 2;
+        local.y = start_y + (i * line_height);
+        
+        ascii_sprites[i].SetPosition(local.x, local.y, 1);
+        ascii_sprites[i].SetOpacity(1);
+    }
+}
+
+# Function to detect encrypted device
+fun detect_encrypted_device() {
+    # Plymouth receives the device information from the system via environment variables
+    # or command line arguments. We can access these through Plymouth's built-in functions
+    
+    # Try to get device from Plymouth's environment
+    local.device = Plymouth.GetEnvironmentVariable("CRYPTTAB_SOURCE");
+    if (device && device != "") {
+        return device;
+    }
+    
+    # Fallback: try common LUKS device patterns
+    local.common_devices = ["/dev/nvme0n1p2", "/dev/sda2", "/dev/sdb2", "/dev/vda2"];
+    
+    # In Plymouth, we can also check for mapped devices
+    local.mapped_device = Plymouth.GetEnvironmentVariable("CRYPTTAB_NAME");
+    if (mapped_device && mapped_device != "") {
+        return "/dev/mapper/" + mapped_device;
+    }
+    
+    # Check for systemd-cryptsetup device info
+    local.systemd_device = Plymouth.GetEnvironmentVariable("SYSTEMD_CRYPTSETUP_DEVICE");
+    if (systemd_device && systemd_device != "") {
+        return systemd_device;
+    }
+    
+    # Final fallback to most common NVMe setup
+    return "/dev/nvme0n1p2";
+}
+
+# Password dialog functions
+fun create_password_dialogue() {
+    if (!encrypted_device) {
+        encrypted_device = detect_encrypted_device();
+    }
+    
+    local.prompt_text = "Please unlock disk " + encrypted_device + ":";
+    local.lock_image = Image.Text(prompt_text, 1.0, 1.0, 1.0, 1, "monospace");
+    password_prompt = Sprite(lock_image);
+    password_prompt.SetPosition((screen_width - lock_image.GetWidth()) / 2, 
+                               screen_height / 2 + 220, 10000);
+    password_prompt.SetOpacity(1);
+    
+    # Create password field background
+    local.field_image = Image("password_field.png");
+    if (!field_image) {
+        # Create a simple rectangle if image doesn't exist
+        field_image = Image(300, 30);
+        field_image = field_image.Scale(300, 30);
+    }
+    
+    password_field = Sprite(field_image);
+    password_field.SetPosition((screen_width - 300) / 2, 
+                              screen_height / 2 + 260, 10000);
+    password_field.SetOpacity(1);
+    
+    # Initialize bullet image for password characters
+    bullet_image = Image.Text("*", 1.0, 1.0, 1.0, 1, "monospace");
+}
+
+# Function to create loading message with animated dots
+fun create_loading_message() {
+    local.loading_text = "Unlocking encrypted disk";
+    local.loading_image = Image.Text(loading_text, 1.0, 1.0, 1.0, 1, "monospace");
+    loading_message = Sprite(loading_image);
+    loading_message.SetPosition((screen_width - loading_image.GetWidth()) / 2, 
+                               screen_height / 2 + 200, 10000);
+    loading_message.SetOpacity(0);
+    
+    # Create dots for animation - calculate total width including dots and spacing
+    local.dot_image = Image.Text(".", 1.0, 1.0, 1.0, 1, "monospace");
+    local.dot_width = dot_image.GetWidth();
+    local.total_dots_width = (3 * dot_width) + (2 * 5); # 3 dots + 2 spaces of 5px each
+    local.total_width = loading_image.GetWidth() + 10 + total_dots_width; # message + gap + dots
+    local.start_x = (screen_width - total_width) / 2; # Center the entire thing
+    
+    # Position dots relative to the centered start position
+    local.dots_start_x = start_x + loading_image.GetWidth() + 10;
+    for (i = 0; i < 3; i++) {
+        loading_dots[i] = Sprite(dot_image);
+        loading_dots[i].SetPosition(dots_start_x + (i * (dot_width + 5)), 
+                                   screen_height / 2 + 200, 10000);
+        loading_dots[i].SetOpacity(0);
+    }
+    
+    # Update loading message position to match the centered calculation
+    loading_message.SetPosition(start_x, screen_height / 2 + 200, 10000);
+}
+
+# Function to animate loading dots
+fun animate_loading_dots() {
+    loading_animation_time++;
+    
+    if (loading_animation_time % 20 == 0) {
+        loading_dots_count = (loading_dots_count + 1) % 4;
+        
+        # Hide all dots first
+        for (i = 0; i < 3; i++) {
+            loading_dots[i].SetOpacity(0);
+        }
+        
+        # Show dots up to current count
+        for (i = 0; i < loading_dots_count; i++) {
+            loading_dots[i].SetOpacity(1);
+        }
+    }
+}
+
+# Function to show loading state
+fun show_loading_state() {
+    password_entered = 1;
+    
+    # Hide password dialog
+    password_dialogue_opacity(0);
+    
+    # Show loading message
+    if (!loading_message) {
+        create_loading_message();
+    }
+    
+    loading_message.SetOpacity(1);
+    loading_animation_time = 0;
+    loading_dots_count = 0;
+}
+
+fun password_dialogue_setup(dialogue_type) {
+    if (dialogue_type == "password") {
+        create_password_dialogue();
+        global.password_dialogue = dialogue_type;
+        password_entered = 0;
+    }
+}
+
+fun password_dialogue_opacity(opacity) {
+    if (password_prompt) password_prompt.SetOpacity(opacity);
+    if (password_field) password_field.SetOpacity(opacity);
+    if (password_error_message) password_error_message.SetOpacity(opacity);
+    
+    # Hide all password bullets
+    for (i = 0; password_bullets[i]; i++) {
+        password_bullets[i].SetOpacity(opacity);
+    }
+}
+
+# Function to hide password error message
+fun hide_password_error() {
+    if (password_error_message) {
+        password_error_message.SetOpacity(0);
+    }
+}
+
+# Display password callback
+fun display_password_callback(prompt, bullets) {
+    password_dialogue_setup("password");
+    
+    # Clear existing bullets
+    for (i = 0; password_bullets[i]; i++) {
+        password_bullets[i] = NULL;
+    }
+    
+    # Calculate dynamic centering for password bullets
+    local.bullet_width = bullet_image.GetWidth();
+    local.bullet_spacing = 12;
+    local.total_bullets_width = (bullets * bullet_spacing);
+    local.bullets_start_x = (screen_width - total_bullets_width) / 2;
+    
+    # Create new bullets for each character with dynamic centering
+    for (i = 0; i < bullets; i++) {
+        password_bullets[i] = Sprite(bullet_image);
+        local.bullet_x = bullets_start_x + (i * bullet_spacing);
+        local.bullet_y = screen_height / 2 + 245;
+        password_bullets[i].SetPosition(bullet_x, bullet_y, 10001);
+        password_bullets[i].SetOpacity(1);
+    }
+}
+
+Plymouth.SetDisplayPasswordFunction(display_password_callback);
+Plymouth.SetMessageFunction(message_callback);
+
+# Display normal callback
+fun display_normal_callback() {
+    global.status = "normal";
+    if (global.password_dialogue) {
+        # If password was entered, show loading state
+        if (password_entered == 0) {
+            show_loading_state();
+        } else {
+            password_dialogue_opacity(0);
+            hide_password_error();
+            if (loading_message) loading_message.SetOpacity(0);
+            for (i = 0; i < 3; i++) {
+                if (loading_dots[i]) loading_dots[i].SetOpacity(0);
+            }
+            global.password_dialogue = NULL;
+            password_entered = 0;
+        }
+    }
+}
+
+Plymouth.SetDisplayNormalFunction(display_normal_callback);
+
+# Boot progress callback
+fun boot_progress_callback(duration, progress) {
+    # Simple progress indication - could add progress bar here if needed
+}
+
+Plymouth.SetBootProgressFunction(boot_progress_callback);
+
+# Message callback for system messages
+fun message_callback(message) {
+    if (!message) return;
+
+    # Create a simple boot message display
+    local.message_image = Image.Text(message, 0.8, 0.8, 0.8, 1, "monospace");
+    if (!shutdown_step) {
+        shutdown_step = Sprite(message_image);
+    } else {
+        shutdown_step.SetImage(message_image);
+    }
+    
+    shutdown_step.SetPosition((screen_width - message_image.GetWidth()) / 2, 
+                                screen_height / 2 + 300, 10000);
+    shutdown_step.SetOpacity(0.7);
+}
+
+# Refresh callback - called up to 50 times per second
+fun refresh_callback() {
+    # Keep ASCII art visible
+    for (i = 0; ascii_sprites[i]; i++) {
+        ascii_sprites[i].SetOpacity(1);
+    }
+    
+    # Animate loading dots if in loading state
+    if (password_entered && loading_message && loading_message.GetOpacity() > 0) {
+        animate_loading_dots();
+    }
+}
+
+Plymouth.SetRefreshFunction(refresh_callback);
+
+# Quit callback
+fun quit_callback() {
+    # Clean up on exit
+}
+
+Plymouth.SetQuitFunction(quit_callback);
+
+# Initialize the theme
+init_ascii_art();
