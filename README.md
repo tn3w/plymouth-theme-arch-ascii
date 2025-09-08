@@ -5,16 +5,6 @@
 <h2 align="center">Plymouth Theme: Arch Ascii Art</h2>
 <p align="center">Arch Ascii Art is a <strong>Plymouth theme</strong> featuring a centered <strong>rainbow-colored Arch Linux ASCII art</strong> logo with password input functionality.</p>
 
-<p align="center">
-  <strong>Keywords:</strong> arch-linux, plymouth, plymouth-themes, plymouth-theme, boot-splash, luks, encryption, ascii-art, rainbow, arch-logo
-</p>
-
-<p align="center">
-  <strong>Author:</strong> tn3w &lt;tn3w@protonmail.com&gt;<br>
-  <strong>Repository:</strong> <a href="https://github.com/tn3w/plymouth-theme-arch-ascii">https://github.com/tn3w/plymouth-theme-arch-ascii</a><br>
-  <strong>AUR Package:</strong> <a href="https://aur.archlinux.org/packages/plymouth-theme-arch-ascii">plymouth-theme-arch-ascii</a>
-</p>
-
 Quick Install:
 ```bash
 yay -S plymouth-theme-arch-ascii
