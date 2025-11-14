@@ -5,7 +5,8 @@
 <h2 align="center">Plymouth Theme: Arch Ascii Art</h2>
 <p align="center">Arch Ascii Art is a <strong>Plymouth theme</strong> featuring a centered <strong>rainbow-colored Arch Linux ASCII art</strong> logo with password input functionality.</p>
 
-Quick Install:
+Quick Install (if Plymouth is already installed and configured):
+
 ```bash
 yay -S plymouth-theme-arch-ascii
 sudo plymouth-set-default-theme arch-ascii-art
@@ -22,60 +23,84 @@ sudo mkinitcpio -P
 ## 🚀 Installation
 
 **Prerequisites:**
-1. Install Plymouth:
-   ```bash
-   sudo pacman -S plymouth
-   ```
-2. Configure mkinitcpio hooks for LUKS with Plymouth:
-   DIY: Open `/etc/mkinitcpio.conf`, `plymouth` must be placed before encrypt in the HOOKS array to display the boot splash during LUKS decryption.
 
-   Command:
-   ```bash
-   sudo sed -i 's/^HOOKS=.*/HOOKS=(base udev autodetect modconf kms keyboard keymap consolefont block plymouth encrypt filesystems fsck)/' /etc/mkinitcpio.conf
-   ```
-3. Rebuild initramfs:
-   ```bash
-   sudo mkinitcpio -P
-   ```
+1. Install Plymouth:
+    ```bash
+    sudo pacman -S plymouth
+    ```
+2. Configure mkinitcpio hooks for LUKS with Plymouth:
+
+    DIY: Open `/etc/mkinitcpio.conf`, `plymouth` must be placed after `base udev` and before `encrypt` in the HOOKS array to display the boot splash during LUKS decryption.
+
+    Command:
+
+    ```bash
+    sudo sed -i '/^HOOKS=/ {/plymouth/! s/udev/udev plymouth/}' /etc/mkinitcpio.conf
+    ```
+
+3. Configure GRUB for Plymouth:
+
+    DIY: Open `/etc/default/grub`, add `splash` to the `GRUB_CMDLINE_LINUX_DEFAULT` line.
+
+    Command:
+
+    ```bash
+    sudo sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT=/ {/splash/! s/"$/ splash"/}' /etc/default/grub
+    sudo grub-mkconfig -o /boot/grub/grub.cfg
+    ```
+
+4. Rebuild initramfs:
+    ```bash
+    sudo mkinitcpio -P
+    ```
 
 **A. Use AUR helpers**
-   1. Install with yay:
-   ```bash
-   yay -S plymouth-theme-arch-ascii
-   ```
-   2. Or install with paru:
-   ```bash
-   paru -S plymouth-theme-arch-ascii
-   ```
-   3. Set the theme as default:
-   ```bash
-   sudo plymouth-set-default-theme arch-ascii-art
-   ```
-   4. Update initramfs:
-   ```bash
-   sudo mkinitcpio -P
-   ```
+
+1. Install with an AUR helper (e.g. yay, paru):
+
+```bash
+yay -S plymouth-theme-arch-ascii
+
+# or install with paru
+# paru -S plymouth-theme-arch-ascii
+```
+
+2. Set the theme as default:
+
+```bash
+sudo plymouth-set-default-theme arch-ascii-art
+```
+
+3. Update initramfs:
+
+```bash
+sudo mkinitcpio -P
+```
+
 **B. Use git**
-   1. Clone the repository to your machine:
-      ```bash
-      sudo git clone https://github.com/tn3w/plymouth-theme-arch-ascii.git
-      ```
 
-   2. Copy the theme directory to Plymouth themes location:
-      ```bash
-      sudo cp -r plymouth-theme-arch-ascii /usr/share/plymouth/themes/arch-ascii
-      ```
+1. Clone the repository to your machine:
 
-   3. Set the theme as default:
-      ```bash
-      sudo plymouth-set-default-theme arch-ascii
-      ```
+    ```bash
+    sudo git clone https://github.com/tn3w/plymouth-theme-arch-ascii.git
+    ```
 
-   4. Update initramfs:
-      ```bash
-      sudo mkinitcpio -P
-      ```
+2. Copy the theme directory to Plymouth themes location:
 
+    ```bash
+    sudo cp -r plymouth-theme-arch-ascii /usr/share/plymouth/themes/arch-ascii-art
+    ```
+
+3. Set the theme as default:
+
+    ```bash
+    sudo plymouth-set-default-theme arch-ascii-art
+    ```
+
+4. Update initramfs:
+    ```bash
+    sudo mkinitcpio -P
+    ```
 
 ## Files
 
@@ -89,8 +114,9 @@ sudo mkinitcpio -P
 ## Color Scheme
 
 The ASCII art uses a rainbow gradient:
+
 - **Red**: Top 3 lines
-- **Orange**: Lines 4-6  
+- **Orange**: Lines 4-6
 - **Yellow**: Lines 7-9
 - **Green**: Lines 10-13
 - **Blue**: Lines 14-16
@@ -99,6 +125,7 @@ The ASCII art uses a rainbow gradient:
 ## Usage
 
 This theme will automatically display during:
+
 - System boot (if set as default)
 - Disk encryption password prompts
 - Other Plymouth-managed system events
@@ -108,6 +135,7 @@ The password input appears below the ASCII art with a prompt and bullet characte
 ## Testing
 
 To test the theme without rebooting:
+
 ```bash
 sudo plymouthd --debug --debug-file=/tmp/plymouth-debug.log
 sudo plymouth --show-splash
