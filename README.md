@@ -30,12 +30,12 @@ sudo mkinitcpio -P
     ```
 2. Configure mkinitcpio hooks for LUKS with Plymouth:
 
-    DIY: Open `/etc/mkinitcpio.conf`, `plymouth` must be placed after `base udev` and before `encrypt` in the HOOKS array to display the boot splash during LUKS decryption.
+    DIY: Open `/etc/mkinitcpio.conf`, `plymouth` must be placed after `udev` (or `systemd`) and before `encrypt` (or `sd-encrypt`) in the HOOKS array to display the boot splash during LUKS decryption.
 
     Command:
 
     ```bash
-    sudo sed -i '/^HOOKS=/ {/plymouth/! s/udev/udev plymouth/}' /etc/mkinitcpio.conf
+    sudo sed -i -E '/^HOOKS=/ {/plymouth/! s/\b(udev|systemd)\b/\1 plymouth/}' /etc/mkinitcpio.conf
     ```
 
 3. Configure GRUB for Plymouth:

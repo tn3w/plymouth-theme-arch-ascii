@@ -103,4 +103,4 @@ jobs:
         git config --local user.name "GitHub Action"
         git add PKGBUILD .SRCINFO
         git diff --staged --quiet || git commit -m "Update package version to ${{ steps.version.outputs.version }}"
-        git push origin HEAD:main || echo "No changes to push"
+        git push origin HEAD:master || echo "No changes to push"

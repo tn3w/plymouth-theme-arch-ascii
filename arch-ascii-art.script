@@ -47,14 +47,11 @@ ascii_sprites = [];
 
 # Password dialog variables
 password_dialogue = NULL;
-password_field = NULL;
 password_bullets = [];
 password_prompt = NULL;
 bullet_image = NULL;
 loading_message = NULL;
 loading_dots = [];
-encrypted_device = NULL;
-password_error_message = NULL;
 
 # Status variables
 global.status = "normal";
@@ -90,63 +87,16 @@ fun init_ascii_art() {
     }
 }
 
-# Function to detect encrypted device
-fun detect_encrypted_device() {
-    # Plymouth receives the device information from the system via environment variables
-    # or command line arguments. We can access these through Plymouth's built-in functions
-    
-    # Try to get device from Plymouth's environment
-    local.device = Plymouth.GetEnvironmentVariable("CRYPTTAB_SOURCE");
-    if (device && device != "") {
-        return device;
-    }
-    
-    # Fallback: try common LUKS device patterns
-    local.common_devices = ["/dev/nvme0n1p2", "/dev/sda2", "/dev/sdb2", "/dev/vda2"];
-    
-    # In Plymouth, we can also check for mapped devices
-    local.mapped_device = Plymouth.GetEnvironmentVariable("CRYPTTAB_NAME");
-    if (mapped_device && mapped_device != "") {
-        return "/dev/mapper/" + mapped_device;
-    }
-    
-    # Check for systemd-cryptsetup device info
-    local.systemd_device = Plymouth.GetEnvironmentVariable("SYSTEMD_CRYPTSETUP_DEVICE");
-    if (systemd_device && systemd_device != "") {
-        return systemd_device;
-    }
-    
-    # Final fallback to most common NVMe setup
-    return "/dev/nvme0n1p2";
-}
-
 # Password dialog functions
-fun create_password_dialogue() {
-    if (!encrypted_device) {
-        encrypted_device = detect_encrypted_device();
-    }
-    
-    local.prompt_text = "Please unlock disk " + encrypted_device + ":";
-    local.lock_image = Image.Text(prompt_text, 1.0, 1.0, 1.0, 1, "monospace");
-    password_prompt = Sprite(lock_image);
-    password_prompt.SetPosition((screen_width - lock_image.GetWidth()) / 2, 
+fun create_password_dialogue(prompt) {
+    if (!prompt) prompt = "Password:";
+
+    local.prompt_image = Image.Text(prompt, 1.0, 1.0, 1.0, 1, "monospace");
+    password_prompt = Sprite(prompt_image);
+    password_prompt.SetPosition((screen_width - prompt_image.GetWidth()) / 2,
                                screen_height / 2 + 220, 10000);
     password_prompt.SetOpacity(1);
-    
-    # Create password field background
-    local.field_image = Image("password_field.png");
-    if (!field_image) {
-        # Create a simple rectangle if image doesn't exist
-        field_image = Image(300, 30);
-        field_image = field_image.Scale(300, 30);
-    }
-    
-    password_field = Sprite(field_image);
-    password_field.SetPosition((screen_width - 300) / 2, 
-                              screen_height / 2 + 260, 10000);
-    password_field.SetOpacity(1);
-    
-    # Initialize bullet image for password characters
+
     bullet_image = Image.Text("*", 1.0, 1.0, 1.0, 1, "monospace");
 }
 
@@ -215,35 +165,32 @@ fun show_loading_state() {
     loading_dots_count = 0;
 }
 
-fun password_dialogue_setup(dialogue_type) {
-    if (dialogue_type == "password") {
-        create_password_dialogue();
-        global.password_dialogue = dialogue_type;
-        password_entered = 0;
+fun hide_loading_state() {
+    if (loading_message) loading_message.SetOpacity(0);
+    for (i = 0; i < 3; i++) {
+        if (loading_dots[i]) loading_dots[i].SetOpacity(0);
     }
+}
+
+fun password_dialogue_setup(prompt) {
+    hide_loading_state();
+    create_password_dialogue(prompt);
+    global.password_dialogue = "password";
+    password_entered = 0;
 }
 
 fun password_dialogue_opacity(opacity) {
     if (password_prompt) password_prompt.SetOpacity(opacity);
-    if (password_field) password_field.SetOpacity(opacity);
-    if (password_error_message) password_error_message.SetOpacity(opacity);
-    
+
     # Hide all password bullets
     for (i = 0; password_bullets[i]; i++) {
         password_bullets[i].SetOpacity(opacity);
     }
 }
 
-# Function to hide password error message
-fun hide_password_error() {
-    if (password_error_message) {
-        password_error_message.SetOpacity(0);
-    }
-}
-
 # Display password callback
 fun display_password_callback(prompt, bullets) {
-    password_dialogue_setup("password");
+    password_dialogue_setup(prompt);
     
     # Clear existing bullets
     for (i = 0; password_bullets[i]; i++) {
@@ -267,7 +214,6 @@ fun display_password_callback(prompt, bullets) {
 }
 
 Plymouth.SetDisplayPasswordFunction(display_password_callback);
-Plymouth.SetMessageFunction(message_callback);
 
 # Display normal callback
 fun display_normal_callback() {
@@ -278,11 +224,7 @@ fun display_normal_callback() {
             show_loading_state();
         } else {
             password_dialogue_opacity(0);
-            hide_password_error();
-            if (loading_message) loading_message.SetOpacity(0);
-            for (i = 0; i < 3; i++) {
-                if (loading_dots[i]) loading_dots[i].SetOpacity(0);
-            }
+            hide_loading_state();
             global.password_dialogue = NULL;
             password_entered = 0;
         }
@@ -314,6 +256,8 @@ fun message_callback(message) {
                                 screen_height / 2 + 300, 10000);
     shutdown_step.SetOpacity(0.7);
 }
+
+Plymouth.SetMessageFunction(message_callback);
 
 # Refresh callback - called up to 50 times per second
 fun refresh_callback() {
