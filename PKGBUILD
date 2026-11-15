@@ -1,6 +1,6 @@
 # Maintainer: tn3w <tn3w@protonmail.com>
 pkgname=plymouth-theme-arch-ascii
-pkgver=1.0.2
+pkgver=1.0.3
 pkgrel=1
 pkgdesc="A Plymouth theme featuring a centered rainbow-colored Arch Linux ASCII art logo with password input functionality"
 arch=('any')
