@@ -8,7 +8,7 @@ url="https://github.com/tn3w/plymouth-theme-arch-ascii"
 license=('MIT')
 depends=('plymouth')
 source=("$pkgname-$pkgver.tar.gz::https://github.com/tn3w/plymouth-theme-arch-ascii/archive/v$pkgver.tar.gz")
-sha256sums=('ab45e667874eb7a736933389a410cfbdb62eca75f3a948e95ad460464ccaad35')
+sha256sums=('d4ffffacda580dd719f1089078586cbb28c92b3bf2da718b5412605b56407614')
 
 package() {
     cd "$srcdir/$pkgname-$pkgver"
